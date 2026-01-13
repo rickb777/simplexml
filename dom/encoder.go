@@ -12,31 +12,27 @@ import (
 type Encoder struct {
 	*bufio.Writer
 	depth           int
-	pretty          bool
+	indentation     string
 	started         bool
 	namespacesAdded int
 	nsPrefixMap     map[string]string
 	nsURLMap        map[string]string
 }
 
-// NewEncoder returns a new Encoder that will output to the
-// passed-in [io.Writer].
+// NewEncoder returns a new Encoder that will write to the [io.Writer].
 //
 // The encoded document will have all namespace declarations lifted to the
 // root element of the document.
-func NewEncoder(writer io.Writer) *Encoder {
-	res := &Encoder{Writer: bufio.NewWriter(writer)}
-	res.nsPrefixMap = make(map[string]string)
-	res.nsURLMap = make(map[string]string)
-	return res
-}
-
-// Pretty puts the [Encoder] into pretty-print mode using [Indentation].
-func (e *Encoder) Pretty() {
-	if e.started {
-		log.Panic("xml: Encoding has started, cannot set Pretty flag")
+//
+// Optional indentation may be specified.
+func NewEncoder(writer io.Writer, indentation ...string) *Encoder {
+	enc := &Encoder{Writer: bufio.NewWriter(writer)}
+	enc.nsPrefixMap = make(map[string]string)
+	enc.nsURLMap = make(map[string]string)
+	if len(indentation) > 0 {
+		enc.indentation = indentation[0]
 	}
-	e.pretty = true
+	return enc
 }
 
 func (e *Encoder) addNamespace(ns string, prefix string) {
@@ -70,16 +66,16 @@ func (e *Encoder) addNamespace(ns string, prefix string) {
 
 // prettyEnd relies on bufio.Writer error propagation.
 func (e *Encoder) prettyEnd() {
-	if e.pretty {
+	if len(e.indentation) > 0 {
 		_, _ = e.WriteString("\n")
 	}
 }
 
 // spaces relies on bufio.Writer error propagation.
 func (e *Encoder) spaces() {
-	if e.pretty {
+	if len(e.indentation) > 0 {
 		for i := 0; i < e.depth; i++ {
-			_, _ = e.WriteString("  ")
+			_, _ = e.WriteString(e.indentation)
 		}
 	}
 }

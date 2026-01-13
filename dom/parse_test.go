@@ -118,7 +118,7 @@ func TestParsing(t *testing.T) {
 		}
 		autoparse, err := Parse(parsedoc.Reader())
 		if err != nil {
-			t.Errorf("Parsing new docuemnt from a document.Reader() failed: %v", err)
+			t.Errorf("Parsing new document from a document.Reader() failed: %v", err)
 		}
 		s1 := autoparse.String()
 		s2 := parsedoc.String()

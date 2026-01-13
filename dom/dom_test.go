@@ -100,8 +100,7 @@ func TestAncestorOrder(t *testing.T) {
 func TestEncoding(t *testing.T) {
 	doc := parseDoc()
 	var sb strings.Builder
-	enc := NewEncoder(&sb)
-	enc.Pretty()
+	enc := NewEncoder(&sb, "  ")
 	err := doc.Encode(enc)
 	expect.Error(err).ToBeNil(t)
 	expect.String(sb.String()).ToBe(t, testDoc)

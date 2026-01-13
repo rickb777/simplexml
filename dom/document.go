@@ -12,6 +12,7 @@ package dom
 
 import (
 	"bytes"
+	"io"
 )
 
 // A Document represents an entire XML document.  Documents hold the root
@@ -47,27 +48,27 @@ func (doc *Document) Encode(e *Encoder) error {
 	return e.Flush()
 }
 
-// Bytes encodes a Document into a byte array.  The document will be pretty-printed.
-func (doc *Document) Bytes() []byte {
-	b := bytes.Buffer{}
-	encoder := NewEncoder(&b)
-	encoder.Pretty()
+// Bytes encodes a Document into a byte array. It can optionally be indented.
+func (doc *Document) Bytes(indentation ...string) []byte {
+	return doc.bytes(indentation...).Bytes()
+}
+
+// Reader returns a [io.Reader] that can be used wherever
+// something wants to consume this document.
+func (doc *Document) Reader() io.Reader {
+	return doc.bytes()
+}
+
+func (doc *Document) bytes(indentation ...string) *bytes.Buffer {
+	var b bytes.Buffer
+	encoder := NewEncoder(&b, indentation...)
 	// since we are encoding to a bytes.Buffer, assume Encode never fails.
 	_ = doc.Encode(encoder)
 	_ = encoder.Flush()
-	return b.Bytes()
+	return &b
 }
 
-// Reader returns a bytes.Reader that can be used wherever
-// something wants to consume this document via io.Reader
-// This would be implemented using io.Pipe() for some nice
-// streaming reads, but that does not play nice for some reason
-// when using the returned Reader as an http.Request.Body
-func (doc *Document) Reader() *bytes.Reader {
-	return bytes.NewReader(doc.Bytes())
-}
-
-// String returns the result of stringifying the byte array that Bytes returns.
+// String converts to a string the result of [Bytes] with 2-space indentation.
 func (doc *Document) String() string {
-	return string(doc.Bytes())
+	return string(doc.Bytes("  "))
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"log"
 )
 
@@ -275,7 +276,7 @@ func (node *Element) Encode(e *Encoder) (err error) {
 
 	if len(node.children) == 0 && len(node.Content) == 0 {
 		ctag := "/>"
-		if e.pretty {
+		if len(e.indentation) > 0 {
 			ctag = "/>\n"
 		}
 		_, _ = e.WriteString(ctag)
@@ -307,18 +308,27 @@ func (node *Element) Encode(e *Encoder) (err error) {
 	return e.Flush()
 }
 
-// Bytes returns a pretty-printed XML encoding of this part of the tree.
-func (node *Element) Bytes() []byte {
+// Bytes returns the XML encoding of this part of the tree, with optional indentation.
+func (node *Element) Bytes(indentation ...string) []byte {
+	return node.bytes(indentation...).Bytes()
+}
+
+// Reader returns a [io.Reader] that can be used wherever
+// something wants to consume this element tree.
+func (node *Element) Reader() io.Reader {
+	return node.bytes()
+}
+
+func (node *Element) bytes(indentation ...string) *bytes.Buffer {
 	var b bytes.Buffer
-	encoder := NewEncoder(&b)
-	encoder.Pretty()
+	encoder := NewEncoder(&b, indentation...)
 	// since we are encoding to a bytes.Buffer, assume Encode never fails.
 	_ = node.Encode(encoder)
 	_ = encoder.Flush()
-	return b.Bytes()
+	return &b
 }
 
 // String returns a pretty-printed XML encoding of this part of the tree.
 func (node *Element) String() string {
-	return string(node.Bytes())
+	return string(node.Bytes("  "))
 }
