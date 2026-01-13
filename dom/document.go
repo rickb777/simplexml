@@ -38,30 +38,23 @@ func (doc *Document) SetRoot(node *Element) {
 
 // Encode encodes the entire Document using the passed-in Encoder.
 // The output is a well-formed XML document.
-func (doc *Document) Encode(e *Encoder) (err error) {
-	_, err = e.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
-	if err != nil {
-		return err
-	}
-	if err = e.prettyEnd(); err != nil {
-		return err
-	}
+func (doc *Document) Encode(e *Encoder) error {
+	_, _ = e.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
+	e.prettyEnd()
 	if doc.root != nil {
 		return doc.root.Encode(e)
 	}
-	return nil
+	return e.Flush()
 }
 
-// Bytes encodes a Document into a byte array.  The document will be
-// pretty-printed.
+// Bytes encodes a Document into a byte array.  The document will be pretty-printed.
 func (doc *Document) Bytes() []byte {
 	b := bytes.Buffer{}
 	encoder := NewEncoder(&b)
 	encoder.Pretty()
-	// since we are encoding to a bytes.Buffer, assume
-	// Encode never fails.
-	doc.Encode(encoder)
-	encoder.Flush()
+	// since we are encoding to a bytes.Buffer, assume Encode never fails.
+	_ = doc.Encode(encoder)
+	_ = encoder.Flush()
 	return b.Bytes()
 }
 

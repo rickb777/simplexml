@@ -5,9 +5,10 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
+	"strings"
 )
 
-const TooManyRootElements = "More than one root Element not allowed!"
+var TooManyRootElements = errors.New("no more than one root element is allowed")
 
 func parseElement(decoder *xml.Decoder, tok xml.StartElement) (res *Element, err error) {
 	res = CreateElement(tok.Name)
@@ -38,18 +39,26 @@ func parseElement(decoder *xml.Decoder, tok xml.StartElement) (res *Element, err
 	}
 }
 
-// ParseElements parses the XML elements in the passed io.Reader
-// and returns an array of parsed Elements and an error.  If error
-// is not nil, then all the elements in the Reader were parsed
-// corrently.
+// ParseElementString strictly parses the XML elements. If the input is malformed,
+// an error is returned.
 //
-// This assumes our input is always UTF-8, no matter what lies
-// the <?xml?> header says.
+// This assumes our input is always UTF-8, no matter what the <?xml?> header says.
+func ParseElementString(xml string) (elements []*Element, err error) {
+	return ParseElements(strings.NewReader(xml))
+}
+
+// ParseElements strictly parses the XML elements. If the input is malformed,
+// an error is returned.
+//
+// This assumes our input is always UTF-8, no matter what the <?xml?> header says.
 func ParseElements(r io.Reader) (elements []*Element, err error) {
 	decoder := xml.NewDecoder(r)
 	decoder.Strict = true
-	// Lie like a rug and assume no character set translation is needed.
-	decoder.CharsetReader = func(s string, r io.Reader) (io.Reader, error) { return r, nil }
+	return ParseElementsWithDecoder(decoder)
+}
+
+// ParseElementsWithDecoder is like ParseElements but the decoder options can be specified.
+func ParseElementsWithDecoder(decoder *xml.Decoder) (elements []*Element, err error) {
 	elements = []*Element{}
 	for {
 		tok, err := decoder.Token()
@@ -71,16 +80,28 @@ func ParseElements(r io.Reader) (elements []*Element, err error) {
 	return elements, nil
 }
 
-// Parse parses the XML document from the passed io.Reader and
-// returns either a Document or an error if the io.Reader stream
-// could not be parsed as a well-formed XML document.
+// ParseString strictly parses an XML document and returns a [Document] if input was well-formed.
+// Otherwise, it returns an error.
+func ParseString(xml string) (doc *Document, err error) {
+	return Parse(strings.NewReader(xml))
+}
+
+// Parse strictly parses an XML document from a [io.Reader] and returns a [Document] if
+// input was well-formed. Otherwise, it returns an error.
 func Parse(r io.Reader) (doc *Document, err error) {
-	elements, err := ParseElements(r)
+	decoder := xml.NewDecoder(r)
+	decoder.Strict = true
+	return ParseWithDecoder(decoder)
+}
+
+// ParseWithDecoder is like Parse but the decoder options can be specified.
+func ParseWithDecoder(decoder *xml.Decoder) (doc *Document, err error) {
+	elements, err := ParseElementsWithDecoder(decoder)
 	if err != nil {
 		return nil, err
 	}
 	if len(elements) > 1 {
-		return nil, errors.New(TooManyRootElements)
+		return nil, TooManyRootElements
 	}
 	doc = CreateDocument()
 	if len(elements) == 1 {

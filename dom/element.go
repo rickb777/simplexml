@@ -257,82 +257,68 @@ func (node *Element) Encode(e *Encoder) (err error) {
 		node.addNamespaces(e)
 		e.started = true
 	}
-	err = e.spaces()
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(e, "<%s", namespacedName(e, node.Name))
-	if err != nil {
-		return err
-	}
+
+	e.spaces()
+
+	_, _ = fmt.Fprintf(e, "<%s", namespacedName(e, node.Name))
 	for _, a := range node.Attributes {
-		if a.Name.Space == "xmlns" {
-			continue
-		}
-		_, err = fmt.Fprintf(e, " %s=\"%s\"", namespacedName(e, a.Name), a.Value)
-		if err != nil {
-			return err
+		if a.Name.Space != "xmlns" {
+			_, _ = fmt.Fprintf(e, " %s=\"%s\"", namespacedName(e, a.Name), a.Value)
 		}
 	}
+
 	if writeNamespaces {
 		for prefix, uri := range e.nsPrefixMap {
-			_, err = fmt.Fprintf(e, " xmlns:%s=\"%s\"", prefix, uri)
-			if err != nil {
-				return err
-			}
+			_, _ = fmt.Fprintf(e, " xmlns:%s=\"%s\"", prefix, uri)
 		}
 	}
+
 	if len(node.children) == 0 && len(node.Content) == 0 {
 		ctag := "/>"
 		if e.pretty {
 			ctag = "/>\n"
 		}
-		_, err = e.WriteString(ctag)
-		if err != nil {
+		_, _ = e.WriteString(ctag)
+		return e.Flush()
+	}
+
+	_, _ = e.WriteString(">")
+
+	if len(node.Content) > 0 {
+		if err := xml.EscapeText(e, node.Content); err != nil {
 			return err
 		}
-		return
 	}
-	_, err = e.WriteString(">")
-	if len(node.Content) > 0 {
-		xml.EscapeText(e, node.Content)
-	}
+
 	if len(node.children) > 0 {
 		e.depth++
-		if err = e.prettyEnd(); err != nil {
-			return err
-		}
+		e.prettyEnd()
 		for _, c := range node.children {
 			if err = c.Encode(e); err != nil {
 				return err
 			}
 		}
 		e.depth--
-		if err = e.spaces(); err != nil {
-			return err
-		}
+		e.spaces()
 	}
-	_, err = fmt.Fprintf(e, "</%s>", namespacedName(e, node.Name))
-	if err != nil {
-		return err
-	}
-	return e.prettyEnd()
+
+	_, _ = fmt.Fprintf(e, "</%s>", namespacedName(e, node.Name))
+	e.prettyEnd()
+	return e.Flush()
 }
 
 // Bytes returns a pretty-printed XML encoding of this part of the tree.
-// The return is a byte array.
 func (node *Element) Bytes() []byte {
 	var b bytes.Buffer
 	encoder := NewEncoder(&b)
 	encoder.Pretty()
-	node.Encode(encoder)
-	encoder.Flush()
+	// since we are encoding to a bytes.Buffer, assume Encode never fails.
+	_ = node.Encode(encoder)
+	_ = encoder.Flush()
 	return b.Bytes()
 }
 
 // String returns a pretty-printed XML encoding of this part of the tree.
-//
-//	The return is a string.
 func (node *Element) String() string {
 	return string(node.Bytes())
 }

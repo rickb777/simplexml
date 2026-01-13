@@ -8,8 +8,7 @@ import (
 	"net/url"
 )
 
-// Encoder holds the state needed to encode the DOM into
-// a well-formed XML document.
+// Encoder holds the state needed to encode the DOM into a well-formed XML document.
 type Encoder struct {
 	*bufio.Writer
 	depth           int
@@ -21,9 +20,9 @@ type Encoder struct {
 }
 
 // NewEncoder returns a new Encoder that will output to the
-// passed-in io.Writer.
+// passed-in [io.Writer].
 //
-// The encoded docuemnt will have all namespace declarations lifted to the
+// The encoded document will have all namespace declarations lifted to the
 // root element of the document.
 func NewEncoder(writer io.Writer) *Encoder {
 	res := &Encoder{Writer: bufio.NewWriter(writer)}
@@ -32,7 +31,7 @@ func NewEncoder(writer io.Writer) *Encoder {
 	return res
 }
 
-// Pretty puts the passed Encoder into pretty-print mode.
+// Pretty puts the [Encoder] into pretty-print mode using [Indentation].
 func (e *Encoder) Pretty() {
 	if e.started {
 		log.Panic("xml: Encoding has started, cannot set Pretty flag")
@@ -69,21 +68,18 @@ func (e *Encoder) addNamespace(ns string, prefix string) {
 	e.nsURLMap[ns] = prefix
 }
 
-func (e *Encoder) prettyEnd() error {
-	if !e.pretty {
-		return nil
+// prettyEnd relies on bufio.Writer error propagation.
+func (e *Encoder) prettyEnd() {
+	if e.pretty {
+		_, _ = e.WriteString("\n")
 	}
-	_, err := e.WriteString("\n")
-	return err
 }
 
-func (e *Encoder) spaces() error {
+// spaces relies on bufio.Writer error propagation.
+func (e *Encoder) spaces() {
 	if e.pretty {
 		for i := 0; i < e.depth; i++ {
-			if _, err := e.WriteString(" "); err != nil {
-				return err
-			}
+			_, _ = e.WriteString("  ")
 		}
 	}
-	return nil
 }
