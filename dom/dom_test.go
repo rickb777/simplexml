@@ -41,7 +41,7 @@ func TestMoveChild(t *testing.T) {
 	if root.Children()[3] != sub {
 		t.Error("Failed to move sub from node1 to root")
 	}
-	// and trying to remove sub from node1 again should yeild nil
+	// and trying to remove sub from node1 again should yield nil
 	if node1.RemoveChild(sub) != nil {
 		t.Error("sub is not a child of node1, but trying to remove it worked.")
 	}

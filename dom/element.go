@@ -16,7 +16,7 @@ type Element struct {
 	children []*Element
 	parent   *Element
 	// Unlike a full-fledged XML DOM, we only have a single Content field
-	// instead of representing Text nodes seperately.
+	// instead of representing Text nodes separately.
 	Content    []byte
 	Attributes []xml.Attr
 }
