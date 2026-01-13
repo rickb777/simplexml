@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"regexp"
 
-	"github.com/VictorLowther/simplexml/dom"
+	"github.com/rickb777/simplexml/dom"
 )
 
 // Match is the basic type of a search function.
@@ -114,7 +114,7 @@ func Always() Match {
 	}
 }
 
-//Never returns a matcher that never matches
+// Never returns a matcher that never matches
 func Never() Match {
 	return Not(Always())
 }

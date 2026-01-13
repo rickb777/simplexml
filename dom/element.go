@@ -33,13 +33,14 @@ func CreateElement(n xml.Name) *Element {
 
 // Attr creates a new xml.Attr.  It is exactly equivalent to creating a new
 // xml.Attr with:
-//    xml.Attr{
-//        Name: xml.Name{
-//            Local: name,
-//            Space: space,
-//        },
-//        Value: value,
-//    }
+//
+//	xml.Attr{
+//	    Name: xml.Name{
+//	        Local: name,
+//	        Space: space,
+//	    },
+//	    Value: value,
+//	}
 func Attr(name, space, value string) xml.Attr {
 	return xml.Attr{
 		Name:  xml.Name{Space: space, Local: name},
@@ -49,15 +50,17 @@ func Attr(name, space, value string) xml.Attr {
 
 // Elem creates a new Element.  It is equivalent to creating a new
 // Element with:
-//    CreateElement(xml.Name{Local: name, Space: space})
+//
+//	CreateElement(xml.Name{Local: name, Space: space})
 func Elem(name, space string) *Element {
 	return CreateElement(xml.Name{Space: space, Local: name})
 }
 
 // ElemC creates a new Element with Content.  It is equivalent to
 // creating a new Element with:
-//    e := Elem(name,space)
-//    e.Content = []byte(content)
+//
+//	e := Elem(name,space)
+//	e.Content = []byte(content)
 func ElemC(name, space, content string) *Element {
 	res := Elem(name, space)
 	res.Content = []byte(content)
@@ -89,7 +92,7 @@ func (node *Element) GetAttr(name, space, val string) []xml.Attr {
 	return res
 }
 
-// AddChildren adds children to node.
+// AddChildren adds children to the node.
 // The children will be reparented as needed.
 // The return value is node.
 func (node *Element) AddChildren(children ...*Element) *Element {
@@ -177,9 +180,8 @@ func (node *Element) Ancestors() (res []*Element) {
 }
 
 // AddAttr adds attr to node.
-// Duplicates are ignored. If attr has the same
-// name as a preexisting attribute, then it will replace
-// the preexsting attribute.
+// Duplicates are ignored. If attr has the same name as a preexisting
+// attribute, then it will replace the preexsting attribute.
 // Return is node.
 func (node *Element) AddAttr(attr xml.Attr) *Element {
 	for _, a := range node.Attributes {
@@ -196,13 +198,14 @@ func (node *Element) AddAttr(attr xml.Attr) *Element {
 }
 
 // Attr creates a new xml.Attr and adds it to node.  It is equivalent to:
-//    node.AddAttr(xml.Attr{
-//        Name: xml.Name{
-//            Space: space,
-//            Local: name,
-//        },
-//        Value: value,
-//    })
+//
+//	node.AddAttr(xml.Attr{
+//	    Name: xml.Name{
+//	        Space: space,
+//	        Local: name,
+//	    },
+//	    Value: value,
+//	})
 func (node *Element) Attr(name, space, value string) *Element {
 	return node.AddAttr(Attr(name, space, value))
 }
@@ -328,7 +331,8 @@ func (node *Element) Bytes() []byte {
 }
 
 // String returns a pretty-printed XML encoding of this part of the tree.
-//  The return is a string.
+//
+//	The return is a string.
 func (node *Element) String() string {
 	return string(node.Bytes())
 }

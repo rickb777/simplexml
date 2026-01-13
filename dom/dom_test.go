@@ -16,14 +16,14 @@ type tc struct {
 }
 
 var testCases = []tc{
-	tc{
+	{
 		name: "EmptyDoc",
 		creator: func() *Document {
 			return CreateDocument()
 		},
 		sample: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n",
 	},
-	tc{
+	{
 		name: "OneEmptyNode",
 		creator: func() *Document {
 			doc := CreateDocument()
@@ -32,7 +32,7 @@ var testCases = []tc{
 		},
 		sample: "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<root/>\n",
 	},
-	tc{
+	{
 		name: "MoreNodes",
 		creator: func() *Document {
 			doc := CreateDocument()
@@ -51,7 +51,7 @@ var testCases = []tc{
 </root>
 `,
 	},
-	tc{
+	{
 		name: "WithAttribs",
 		creator: func() *Document {
 			doc := CreateDocument()
@@ -66,12 +66,12 @@ var testCases = []tc{
 </root>
 `,
 	},
-	tc{
+	{
 		name: "WithContent",
 		creator: func() *Document {
 			doc := CreateDocument()
 			root := Elem("root", "")
-			node1 := ElemC("node1", "","this is a text content")
+			node1 := ElemC("node1", "", "this is a text content")
 			root.AddChild(node1)
 			doc.SetRoot(root)
 			return doc
@@ -82,7 +82,7 @@ var testCases = []tc{
 </root>
 `,
 	},
-	tc{
+	{
 		name: "WithNamespaces",
 		creator: func() *Document {
 			doc := CreateDocument()
@@ -256,8 +256,8 @@ func TestParseElements(t *testing.T) {
 		t.Errorf("Expected 2 elements, got %d", len(elements))
 	}
 	names := []xml.Name{
-		xml.Name{Local: "foo"},
-		xml.Name{Local: "bar"},
+		{Local: "foo"},
+		{Local: "bar"},
 	}
 
 	for i, e := range names {

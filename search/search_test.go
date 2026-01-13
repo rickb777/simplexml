@@ -2,12 +2,13 @@ package search
 
 import (
 	"encoding/xml"
-	"github.com/VictorLowther/simplexml/dom"
 	"log"
 	"regexp"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/rickb777/simplexml/dom"
 )
 
 var testDoc string = `<?xml version="1.0" encoding="UTF-8"?>

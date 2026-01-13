@@ -49,7 +49,7 @@ func ParseElements(r io.Reader) (elements []*Element, err error) {
 	decoder := xml.NewDecoder(r)
 	decoder.Strict = true
 	// Lie like a rug and assume no character set translation is needed.
-	decoder.CharsetReader = func(s string, r io.Reader)(io.Reader,error){ return r,nil }
+	decoder.CharsetReader = func(s string, r io.Reader) (io.Reader, error) { return r, nil }
 	elements = []*Element{}
 	for {
 		tok, err := decoder.Token()

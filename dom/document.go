@@ -3,12 +3,11 @@
 // encoding mechanism (XMLRPC, SOAP, etc.), and not for general XML document
 // processing.  Specifically:
 //
-// 1. We ignore comments and document processing directives.  They are stripped
-// out as part of document processing.
+//  1. We ignore comments and document processing directives.  They are stripped
+//     out as part of document processing.
 //
-// 2. We do not have seperate Text fields.  Instead, each Element has a single
-// Contents field which holds the contents of the last enclosed text in a tag.
-//
+//  2. We do not have separate Text fields.  Instead, each [Element] has a single
+//     Content field that holds the contents of the last enclosed text in a tag.
 package dom
 
 import (
@@ -40,7 +39,7 @@ func (doc *Document) SetRoot(node *Element) {
 // Encode encodes the entire Document using the passed-in Encoder.
 // The output is a well-formed XML document.
 func (doc *Document) Encode(e *Encoder) (err error) {
-	_, err = e.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+	_, err = e.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
 	if err != nil {
 		return err
 	}
