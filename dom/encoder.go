@@ -19,7 +19,7 @@ type Encoder struct {
 	nsURLMap        map[string]string
 }
 
-// NewEncoder returns a new Encoder that will write to the [io.Writer].
+// NewEncoder returns a new [Encoder] that will write to the [io.Writer].
 //
 // The encoded document will have all namespace declarations lifted to the
 // root element of the document.

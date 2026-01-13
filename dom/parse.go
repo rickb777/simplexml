@@ -42,7 +42,7 @@ func parseElement(decoder *xml.Decoder, tok xml.StartElement) (res *Element, err
 // ParseElementString strictly parses the XML elements. If the input is malformed,
 // an error is returned.
 //
-// This assumes our input is always UTF-8, no matter what the <?xml?> header says.
+// This assumes the input is always UTF-8, no matter what the <?xml?> header says.
 func ParseElementString(xml string) (elements []*Element, err error) {
 	return ParseElements(strings.NewReader(xml))
 }
@@ -50,14 +50,14 @@ func ParseElementString(xml string) (elements []*Element, err error) {
 // ParseElements strictly parses the XML elements. If the input is malformed,
 // an error is returned.
 //
-// This assumes our input is always UTF-8, no matter what the <?xml?> header says.
+// This assumes the input is always UTF-8, no matter what the <?xml?> header says.
 func ParseElements(r io.Reader) (elements []*Element, err error) {
 	decoder := xml.NewDecoder(r)
 	decoder.Strict = true
 	return ParseElementsWithDecoder(decoder)
 }
 
-// ParseElementsWithDecoder is like ParseElements but the decoder options can be specified.
+// ParseElementsWithDecoder is like [ParseElements] but the decoder options can be specified.
 func ParseElementsWithDecoder(decoder *xml.Decoder) (elements []*Element, err error) {
 	elements = []*Element{}
 	for {
@@ -94,7 +94,7 @@ func Parse(r io.Reader) (doc *Document, err error) {
 	return ParseWithDecoder(decoder)
 }
 
-// ParseWithDecoder is like Parse but the decoder options can be specified.
+// ParseWithDecoder is like [Parse] but the decoder options can be specified.
 func ParseWithDecoder(decoder *xml.Decoder) (doc *Document, err error) {
 	elements, err := ParseElementsWithDecoder(decoder)
 	if err != nil {

@@ -9,8 +9,8 @@ import (
 )
 
 // Element represents a node in an XML document.
-// Elements are arranged in a tree which corresponds to
-// the structure of the XML documents.
+// Elements are arranged in a tree that corresponds to
+// the structure of the XML document.
 type Element struct {
 	Name     xml.Name
 	children []*Element
@@ -21,8 +21,8 @@ type Element struct {
 	Attributes []xml.Attr
 }
 
-// CreateElement creates a new element with the passed-in xml.Name.
-// The created Element has no parent, no children, no content, and no
+// CreateElement creates a new element with the passed-in [xml.Name].
+// The created [Element] has no parent, no children, no content, and no
 // attributes.
 func CreateElement(n xml.Name) *Element {
 	return &Element{
@@ -32,8 +32,8 @@ func CreateElement(n xml.Name) *Element {
 	}
 }
 
-// Attr creates a new xml.Attr.  It is exactly equivalent to creating a new
-// xml.Attr with:
+// Attr creates a new [xml.Attr].  It is exactly equivalent to creating a new
+// [xml.Attr] with:
 //
 //	xml.Attr{
 //	    Name: xml.Name{
@@ -49,16 +49,16 @@ func Attr(name, space, value string) xml.Attr {
 	}
 }
 
-// Elem creates a new Element.  It is equivalent to creating a new
-// Element with:
+// Elem creates a new [Element].  It is equivalent to creating a new
+// [Element] with:
 //
 //	CreateElement(xml.Name{Local: name, Space: space})
 func Elem(name, space string) *Element {
 	return CreateElement(xml.Name{Space: space, Local: name})
 }
 
-// ElemC creates a new Element with Content.  It is equivalent to
-// creating a new Element with:
+// ElemC creates a new [Element] with content, e.g. "<b>hello</b>".
+// It is equivalent to creating a new [Element] with:
 //
 //	e := Elem(name,space)
 //	e.Content = []byte(content)
@@ -70,7 +70,7 @@ func ElemC(name, space, content string) *Element {
 
 // AddChild adds child to node.
 // child will be reparented if needed.
-// The return value is node.
+// The altered node is returned.
 func (node *Element) AddChild(child *Element) *Element {
 	if child.parent != nil {
 		child.parent.RemoveChild(child)
@@ -95,7 +95,7 @@ func (node *Element) GetAttr(name, space, val string) []xml.Attr {
 
 // AddChildren adds children to the node.
 // The children will be reparented as needed.
-// The return value is node.
+// The altered node is returned.
 func (node *Element) AddChildren(children ...*Element) *Element {
 	for _, c := range children {
 		node.AddChild(c)
@@ -105,7 +105,7 @@ func (node *Element) AddChildren(children ...*Element) *Element {
 
 // Replace performs an in-place replacement of node with other.
 // other should not be used after this functions returns.
-// node will be returned.
+// The altered node is returned.
 func (node *Element) Replace(other *Element) *Element {
 	node.Name = other.Name
 	node.Content = other.Content
@@ -168,8 +168,7 @@ func (node *Element) Parent() *Element {
 	return node.parent
 }
 
-// Ancestors returns all the ancestors of this node with the most distant
-// ancestor last.
+// Ancestors returns all the ancestors of this node with the most distant ancestor last.
 func (node *Element) Ancestors() (res []*Element) {
 	res = make([]*Element, 0, 1)
 	t := node.parent
@@ -183,7 +182,7 @@ func (node *Element) Ancestors() (res []*Element) {
 // AddAttr adds attr to node.
 // Duplicates are ignored. If attr has the same name as a preexisting
 // attribute, then it will replace the preexsting attribute.
-// Return is node.
+// The altered node is returned.
 func (node *Element) AddAttr(attr xml.Attr) *Element {
 	for _, a := range node.Attributes {
 		if a == attr {
@@ -198,7 +197,7 @@ func (node *Element) AddAttr(attr xml.Attr) *Element {
 	return node
 }
 
-// Attr creates a new xml.Attr and adds it to node.  It is equivalent to:
+// Attr creates a new [xml.Attr] and adds it to node.  It is equivalent to:
 //
 //	node.AddAttr(xml.Attr{
 //	    Name: xml.Name{
@@ -207,6 +206,8 @@ func (node *Element) AddAttr(attr xml.Attr) *Element {
 //	    },
 //	    Value: value,
 //	})
+//
+// The altered node is returned.
 func (node *Element) Attr(name, space, value string) *Element {
 	return node.AddAttr(Attr(name, space, value))
 }
@@ -249,8 +250,8 @@ func namespacedName(e *Encoder, name xml.Name) string {
 	return prefix + ":" + name.Local
 }
 
-// Encode encodes an element using the passed-in Encoder. If an error occurs
-// during encoding, that error is returned.
+// Encode encodes an element using the passed-in [Encoder].
+// If an error occurs during encoding, that error is returned.
 func (node *Element) Encode(e *Encoder) (err error) {
 	// This could use some refactoring. but it works Well Enough(tm)
 	writeNamespaces := !e.started

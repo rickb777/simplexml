@@ -1,13 +1,3 @@
-// Package dom implements a simple XML DOM that is a light wrapper on top of
-// encoding/xml.  It is oriented towards processing XML used as an RPC
-// encoding mechanism (XMLRPC, SOAP, etc.), and not for general XML document
-// processing.  Specifically:
-//
-//  1. We ignore comments and document processing directives.  They are stripped
-//     out as part of document processing.
-//
-//  2. We do not have separate Text fields.  Instead, each [Element] has a single
-//     Content field that holds the contents of the last enclosed text in a tag.
 package dom
 
 import (
@@ -15,8 +5,7 @@ import (
 	"io"
 )
 
-// A Document represents an entire XML document.  Documents hold the root
-// Element.
+// A Document represents an entire XML document.  Documents hold the root Element.
 type Document struct {
 	root *Element
 }
@@ -31,13 +20,13 @@ func (doc *Document) Root() (node *Element) {
 	return doc.root
 }
 
-// SetRoot sets the new root element of the document.
+// SetRoot sets a new root element of the document.
 func (doc *Document) SetRoot(node *Element) {
 	node.parent = nil
 	doc.root = node
 }
 
-// Encode encodes the entire Document using the passed-in Encoder.
+// Encode encodes the entire [Document] using the [Encoder].
 // The output is a well-formed XML document.
 func (doc *Document) Encode(e *Encoder) error {
 	_, _ = e.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
@@ -48,7 +37,7 @@ func (doc *Document) Encode(e *Encoder) error {
 	return e.Flush()
 }
 
-// Bytes encodes a Document into a byte array. It can optionally be indented.
+// Bytes encodes a [Document] into a byte array. It can optionally be indented.
 func (doc *Document) Bytes(indentation ...string) []byte {
 	return doc.bytes(indentation...).Bytes()
 }
@@ -68,7 +57,7 @@ func (doc *Document) bytes(indentation ...string) *bytes.Buffer {
 	return &b
 }
 
-// String converts to a string the result of [Bytes] with 2-space indentation.
+// String converts to a string the result of [Document.Bytes] with 2-space indentation.
 func (doc *Document) String() string {
 	return string(doc.Bytes("  "))
 }
