@@ -55,12 +55,12 @@ var testCases = []tc{
 			doc := CreateDocument()
 			doc.SetRoot(
 				Elem("root", "").AddChild(
-					Elem("node1", "").Attr("attr1", "", "pouet")))
+					Elem("node1", "").Attr("id", "", `"Fran & Freddie's Diner" <tasty@example.com>`)))
 			return doc
 		},
 		sample: `<?xml version="1.0" encoding="UTF-8"?>
 <root>
-  <node1 attr1="pouet"/>
+  <node1 id="&#34;Fran &amp; Freddie&#39;s Diner&#34; &lt;tasty@example.com&gt;"/>
 </root>
 `,
 	},
@@ -69,14 +69,14 @@ var testCases = []tc{
 		creator: func() *Document {
 			doc := CreateDocument()
 			root := Elem("root", "")
-			node1 := ElemC("node1", "", "this is a text content")
+			node1 := ElemC("node1", "", "this is a text content including < and >")
 			root.AddChild(node1)
 			doc.SetRoot(root)
 			return doc
 		},
 		sample: `<?xml version="1.0" encoding="UTF-8"?>
 <root>
-  <node1>this is a text content</node1>
+  <node1>this is a text content including &lt; and &gt;</node1>
 </root>
 `,
 	},

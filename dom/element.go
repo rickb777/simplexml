@@ -265,7 +265,11 @@ func (node *Element) Encode(e *Encoder) (err error) {
 	_, _ = fmt.Fprintf(e, "<%s", namespacedName(e, node.Name))
 	for _, a := range node.Attributes {
 		if a.Name.Space != "xmlns" {
-			_, _ = fmt.Fprintf(e, " %s=\"%s\"", namespacedName(e, a.Name), a.Value)
+			_, _ = fmt.Fprintf(e, " %s=\"", namespacedName(e, a.Name))
+			if err = xml.EscapeText(e, []byte(a.Value)); err != nil {
+				return err
+			}
+			_, _ = e.Write([]byte{'"'})
 		}
 	}
 
