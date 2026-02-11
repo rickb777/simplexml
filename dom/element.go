@@ -18,7 +18,7 @@ type Element struct {
 	// Unlike a full-fledged XML DOM, we only have a single Content field
 	// instead of representing Text nodes separately.
 	Content    []byte
-	Attributes []xml.Attr
+	Attributes Attrs
 }
 
 // CreateElement creates a new element with the passed-in [xml.Name].
@@ -28,24 +28,7 @@ func CreateElement(n xml.Name) *Element {
 	return &Element{
 		Name:       n,
 		children:   []*Element{},
-		Attributes: []xml.Attr{},
-	}
-}
-
-// Attr creates a new [xml.Attr].  It is exactly equivalent to creating a new
-// [xml.Attr] with:
-//
-//	xml.Attr{
-//	    Name: xml.Name{
-//	        Local: name,
-//	        Space: space,
-//	    },
-//	    Value: value,
-//	}
-func Attr(name, space, value string) xml.Attr {
-	return xml.Attr{
-		Name:  xml.Name{Space: space, Local: name},
-		Value: value,
+		Attributes: Attrs{},
 	}
 }
 
@@ -78,19 +61,6 @@ func (node *Element) AddChild(child *Element) *Element {
 	child.parent = node
 	node.children = append(node.children, child)
 	return node
-}
-
-// GetAttr returns all the matching Attrs on the node.
-func (node *Element) GetAttr(name, space, val string) []xml.Attr {
-	res := []xml.Attr{}
-	for i := range node.Attributes {
-		if (name == "*" || name == node.Attributes[i].Name.Local) &&
-			(space == "*" || space == node.Attributes[i].Name.Space) &&
-			(val == "*" || val == node.Attributes[i].Value) {
-			res = append(res, node.Attributes[i])
-		}
-	}
-	return res
 }
 
 // AddChildren adds children to the node.
@@ -181,7 +151,7 @@ func (node *Element) Ancestors() (res []*Element) {
 
 // AddAttr adds attr to node.
 // Duplicates are ignored. If attr has the same name as a preexisting
-// attribute, then it will replace the preexsting attribute.
+// attribute, then it will replace the preexisting attribute.
 // The altered node is returned.
 func (node *Element) AddAttr(attr xml.Attr) *Element {
 	for _, a := range node.Attributes {
