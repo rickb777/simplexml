@@ -43,7 +43,7 @@ func parseElement(decoder *xml.Decoder, tok xml.StartElement) (res *Element, err
 // an error is returned.
 //
 // This assumes the input is always UTF-8, no matter what the <?xml?> header says.
-func ParseElementString(xml string) (elements []*Element, err error) {
+func ParseElementString(xml string) (elements Elements, err error) {
 	return ParseElements(strings.NewReader(xml))
 }
 
@@ -51,15 +51,15 @@ func ParseElementString(xml string) (elements []*Element, err error) {
 // an error is returned.
 //
 // This assumes the input is always UTF-8, no matter what the <?xml?> header says.
-func ParseElements(r io.Reader) (elements []*Element, err error) {
+func ParseElements(r io.Reader) (elements Elements, err error) {
 	decoder := xml.NewDecoder(r)
 	decoder.Strict = true
 	return ParseElementsWithDecoder(decoder)
 }
 
 // ParseElementsWithDecoder is like [ParseElements] but the decoder options can be specified.
-func ParseElementsWithDecoder(decoder *xml.Decoder) (elements []*Element, err error) {
-	elements = []*Element{}
+func ParseElementsWithDecoder(decoder *xml.Decoder) (elements Elements, err error) {
+	elements = Elements{}
 	for {
 		tok, err := decoder.Token()
 		if err == io.EOF {

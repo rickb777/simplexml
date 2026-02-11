@@ -120,8 +120,8 @@ func Never() Match {
 }
 
 // All returns all the nodes that fn matches
-func All(fn Match, nodes []*dom.Element) []*dom.Element {
-	res := make([]*dom.Element, 0, 0)
+func All(fn Match, nodes dom.Elements) dom.Elements {
+	res := make(dom.Elements, 0, 0)
 	for _, n := range nodes {
 		if fn(n) {
 			res = append(res, n)
@@ -131,7 +131,7 @@ func All(fn Match, nodes []*dom.Element) []*dom.Element {
 }
 
 // First returns the first element that fn matches
-func First(fn Match, nodes []*dom.Element) *dom.Element {
+func First(fn Match, nodes dom.Elements) *dom.Element {
 	for _, n := range nodes {
 		if fn(n) {
 			return n
@@ -153,12 +153,12 @@ func Tag(name, space string) Match {
 }
 
 // FirstTag finds the first element in the set of nodes that matches the tag name and namespace.
-func FirstTag(name, space string, nodes []*dom.Element) *dom.Element {
+func FirstTag(name, space string, nodes dom.Elements) *dom.Element {
 	return First(Tag(name, space), nodes)
 }
 
 // MustFirstTag is the same as FirstTag, but it panics if the tag cannot be found
-func MustFirstTag(name, space string, nodes []*dom.Element) *dom.Element {
+func MustFirstTag(name, space string, nodes dom.Elements) *dom.Element {
 	res := FirstTag(name, space, nodes)
 	if res == nil {
 		panic("Failed to find tag " + name + " in namespace " + space)

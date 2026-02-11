@@ -3,9 +3,9 @@ package dom
 import (
 	"bytes"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"log"
+	"regexp"
 )
 
 // Element represents a node in an XML document.
@@ -13,7 +13,7 @@ import (
 // the structure of the XML document.
 type Element struct {
 	Name     xml.Name
-	children []*Element
+	children Elements
 	parent   *Element
 	// Unlike a full-fledged XML DOM, we only have a single Content field
 	// instead of representing Text nodes separately.
@@ -27,7 +27,7 @@ type Element struct {
 func CreateElement(n xml.Name) *Element {
 	return &Element{
 		Name:       n,
-		children:   []*Element{},
+		children:   Elements{},
 		Attributes: Attrs{},
 	}
 }
@@ -74,51 +74,84 @@ func (node *Element) AddChildren(children ...*Element) *Element {
 }
 
 // Replace performs an in-place replacement of node with other.
-// other should not be used after this functions returns.
 // The altered node is returned.
-func (node *Element) Replace(other *Element) *Element {
+func (node *Element) Replace(other Element) *Element {
 	node.Name = other.Name
 	node.Content = other.Content
 	node.Attributes = other.Attributes
-	node.children = []*Element{}
+	node.children = Elements{}
 	node.AddChildren(other.children...)
 	return node
 }
 
-// RemoveChild removes child from node.  The removed child
-// will be returned if it was actually a child of node, otherwise
-// nil will be returned.
+// RemoveChild removes child from node, matching on its name and selecting the first
+// match. The removed child will be returned if it was actually a child of node,
+// otherwise nil will be returned. If multiple children would match the same name,
+// use RemoveChildN instead.
 func (node *Element) RemoveChild(child *Element) *Element {
-	p := -1
+	n := -1
 	for i, v := range node.children {
-		if v == child {
-			p = i
+		if v.Name == child.Name {
+			n = i
 			break
 		}
 	}
 
-	if p == -1 {
+	if n == -1 {
 		return nil
 	}
 
-	copy(node.children[p:], node.children[p+1:])
+	return node.RemoveChildN(n)
+}
+
+// RemoveChildN removes the nth child from node. For a group of N children,
+// the indexes are 0 to N-1.
+func (node *Element) RemoveChildN(n int) *Element {
+	child := node.children[n]
+	copy(node.children[n:], node.children[n+1:])
 	node.children = node.children[0 : len(node.children)-1]
 	child.parent = nil
 	return child
 }
 
-// Children returns all the children of node.
-func (node *Element) Children() (res []*Element) {
-	res = make([]*Element, 0, len(node.children))
-	return append(res, node.children...)
+// NumChildren gets the number of children.
+func (node *Element) NumChildren() int {
+	return len(node.children)
+}
+
+// ChildN returns nth child.
+func (node *Element) ChildN(n int) *Element {
+	return node.children[n]
+}
+
+// Child returns the first child with matching name. If there is
+// no match, nil is returned. If multiple siblings may have the same
+// name, use Children().With(...) instead.
+func (node *Element) Child(pred NameMatcher) *Element {
+	for _, v := range node.children {
+		if pred(v.Name) {
+			return v
+		}
+	}
+	return nil
+}
+
+// Children returns some or all the children of node.
+func (node *Element) Children(pred ...NameMatcher) Elements {
+	res := make(Elements, 0, len(node.children))
+	if len(pred) == 0 {
+		return append(res, node.children...)
+	}
+	return node.children.With(pred...)
 }
 
 // Descendants returns all descendants of node in breadth order.
-func (node *Element) Descendants() (res []*Element) {
-	res = make([]*Element, 0, len(node.children))
+// The returned slice is a shallow copy.
+func (node *Element) Descendants() Elements {
+	res := make(Elements, 0, len(node.children))
 	toProcess := node.Children()
 	for len(toProcess) > 0 {
-		nextToProcess := make([]*Element, 0, len(node.children))
+		nextToProcess := make(Elements, 0, len(node.children))
 		for _, n := range toProcess {
 			nextToProcess = append(nextToProcess, n.Children()...)
 		}
@@ -129,18 +162,19 @@ func (node *Element) Descendants() (res []*Element) {
 }
 
 // All returns node + node.Descendants()
-func (node *Element) All() []*Element {
-	return append([]*Element{node}, node.Descendants()...)
+// The returned slice is a shallow copy.
+func (node *Element) All() Elements {
+	return append(Elements{node}, node.Descendants()...)
 }
 
-// Parent returns the parent of this node. If there is no parent, returns nil.
+// Parent returns the parent of this node. If there is no parent, it returns nil.
 func (node *Element) Parent() *Element {
 	return node.parent
 }
 
 // Ancestors returns all the ancestors of this node with the most distant ancestor last.
-func (node *Element) Ancestors() (res []*Element) {
-	res = make([]*Element, 0, 1)
+func (node *Element) Ancestors() Elements {
+	res := make(Elements, 0, 1)
 	t := node.parent
 	for t != nil {
 		res = append(res, t)
@@ -148,6 +182,14 @@ func (node *Element) Ancestors() (res []*Element) {
 	}
 	return res
 }
+
+// SetParent makes parent the new parent of node, and returns node.
+func (node *Element) SetParent(parent *Element) *Element {
+	parent.AddChild(node)
+	return node
+}
+
+//-------------------------------------------------------------------------------------------------
 
 // AddAttr adds attr to node.
 // Duplicates are ignored. If attr has the same name as a preexisting
@@ -182,12 +224,6 @@ func (node *Element) Attr(name, space, value string) *Element {
 	return node.AddAttr(Attr(name, space, value))
 }
 
-// SetParent makes parent the new parent of node, and returns node.
-func (node *Element) SetParent(parent *Element) *Element {
-	parent.AddChild(node)
-	return node
-}
-
 func (node *Element) addNamespaces(encoder *Encoder) {
 	// See if any of our attribs are in the xmlns namespace.
 	// If they are, try to add them with their prefix
@@ -220,68 +256,7 @@ func namespacedName(e *Encoder, name xml.Name) string {
 	return prefix + ":" + name.Local
 }
 
-// Encode encodes an element using the passed-in [Encoder].
-// If an error occurs during encoding, that error is returned.
-func (node *Element) Encode(e *Encoder) (err error) {
-	// This could use some refactoring. but it works Well Enough(tm)
-	writeNamespaces := !e.started
-	if writeNamespaces {
-		node.addNamespaces(e)
-		e.started = true
-	}
-
-	e.spaces()
-
-	_, _ = fmt.Fprintf(e, "<%s", namespacedName(e, node.Name))
-	for _, a := range node.Attributes {
-		if a.Name.Space != "xmlns" {
-			_, _ = fmt.Fprintf(e, " %s=\"", namespacedName(e, a.Name))
-			if err = xml.EscapeText(e, []byte(a.Value)); err != nil {
-				return err
-			}
-			_, _ = e.Write([]byte{'"'})
-		}
-	}
-
-	if writeNamespaces {
-		for prefix, uri := range e.nsPrefixMap {
-			_, _ = fmt.Fprintf(e, " xmlns:%s=\"%s\"", prefix, uri)
-		}
-	}
-
-	if len(node.children) == 0 && len(node.Content) == 0 {
-		ctag := "/>"
-		if len(e.indentation) > 0 {
-			ctag = "/>\n"
-		}
-		_, _ = e.WriteString(ctag)
-		return e.Flush()
-	}
-
-	_, _ = e.WriteString(">")
-
-	if len(node.Content) > 0 {
-		if err := xml.EscapeText(e, node.Content); err != nil {
-			return err
-		}
-	}
-
-	if len(node.children) > 0 {
-		e.depth++
-		e.prettyEnd()
-		for _, c := range node.children {
-			if err = c.Encode(e); err != nil {
-				return err
-			}
-		}
-		e.depth--
-		e.spaces()
-	}
-
-	_, _ = fmt.Fprintf(e, "</%s>", namespacedName(e, node.Name))
-	e.prettyEnd()
-	return e.Flush()
-}
+//-------------------------------------------------------------------------------------------------
 
 // Bytes returns the XML encoding of this part of the tree, with optional indentation.
 func (node *Element) Bytes(indentation ...string) []byte {
@@ -306,4 +281,96 @@ func (node *Element) bytes(indentation ...string) *bytes.Buffer {
 // String returns a pretty-printed XML encoding of this part of the tree.
 func (node *Element) String() string {
 	return string(node.Bytes("  "))
+}
+
+//-------------------------------------------------------------------------------------------------
+
+type Elements []*Element
+
+// With filters the elements and returns only those that have matching name.
+// If multiple predicates are supplied, any matching element is returned.
+// If es is empty, nil is returned.
+func (es Elements) With(pred ...NameMatcher) Elements {
+	if len(es) == 0 {
+		return nil
+	}
+	res := make(Elements, 0, len(es))
+	for _, e := range es {
+	inner:
+		for _, p := range pred {
+			if p(e.Name) {
+				res = append(res, e)
+				break inner
+			}
+		}
+	}
+	return res
+}
+
+// WithAttr filters the elements and returns only those that have
+// any attribute with a matching name.
+// If multiple predicates are supplied, any matching element is returned.
+// If es is empty, nil is returned.
+func (es Elements) WithAttr(pred ...NameMatcher) Elements {
+	if len(es) == 0 {
+		return nil
+	}
+	res := make(Elements, 0, len(es))
+	for _, e := range es {
+	inner:
+		for _, a := range e.Attributes {
+			for _, p := range pred {
+				if p(a.Name) {
+					res = append(res, e)
+					break inner
+				}
+			}
+		}
+	}
+	return res
+}
+
+// WithContent filters the elements and returns only those that have
+// matching content. If es is empty, nil is returned.
+//
+// When some regexps are passed in, all elements are returned that have
+// content matching any of the regexps.
+//
+// When no regexps are passed in, all elements are returned that have
+// non-blank content.
+func (es Elements) WithContent(re ...*regexp.Regexp) Elements {
+	if len(es) == 0 {
+		return nil
+	}
+	res := make(Elements, 0, len(es))
+	if len(re) > 0 {
+		for _, e := range es {
+		inner:
+			for _, r := range re {
+				if r.Match(e.Content) {
+					res = append(res, e)
+					break inner
+				}
+			}
+		}
+	} else {
+		for _, e := range es {
+			if len(e.Content) > 0 {
+				res = append(res, e)
+			}
+		}
+	}
+	return res
+}
+
+// Names gets the XML names from the elements in original order.
+func (es Elements) Names() []xml.Name {
+	if len(es) == 0 {
+		return nil
+	}
+	res := make([]xml.Name, 0, len(es))
+	for _, e := range es {
+		res = append(res, e.Name)
+	}
+	return res
 }

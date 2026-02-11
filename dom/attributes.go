@@ -22,30 +22,44 @@ func Attr(name, space, value string) xml.Attr {
 // Attrs is a slice of [xml.Attr].
 type Attrs []xml.Attr
 
-// Get gets the attribute that has matching name (local and space).
-// No wildcards are supported. If there is no match, a zero xml.Attr
-// is returned.
-func (as Attrs) Get(local, space string) xml.Attr {
-	for i := range as {
-		if local == as[i].Name.Local && space == as[i].Name.Space {
-			return as[i]
+// Names gets the XML names from the attributes in original order.
+func (as Attrs) Names() []xml.Name {
+	if len(as) == 0 {
+		return nil
+	}
+	res := make([]xml.Name, 0, len(as))
+	for _, a := range as {
+		res = append(res, a.Name)
+	}
+	return res
+}
+
+// Get gets the attribute that has matching name.
+// If there is no match, a zero xml.Attr is returned.
+func (as Attrs) Get(name NameMatcher) xml.Attr {
+	for _, a := range as {
+		if name(a.Name) {
+			return a
 		}
 	}
 	return xml.Attr{}
 }
 
-// WithName filters the attributes and returns only those that have
-// matching local and space. Either of the local and space parameters
-// can be "*", which is a wildcard.
-func (as Attrs) WithName(local, space string) Attrs {
+// With filters the attributes and returns only those that have
+// matching name. If multiple predicates are supplied, any matching
+// attribute is returned. If as is empty, nil is returned.
+func (as Attrs) With(pred ...NameMatcher) Attrs {
 	if len(as) == 0 {
 		return nil
 	}
 	res := make(Attrs, 0, len(as))
-	for i := range as {
-		if (local == "*" || local == as[i].Name.Local) &&
-			(space == "*" || space == as[i].Name.Space) {
-			res = append(res, as[i])
+	for _, a := range as {
+	inner:
+		for _, p := range pred {
+			if p(a.Name) {
+				res = append(res, a)
+				break inner
+			}
 		}
 	}
 	return res
@@ -91,8 +105,20 @@ func (as Attrs) ToSimpleMap() map[string]string {
 // that accepts a string. The returned value will only contain the parsed result if the
 // attribute existed and could be successfully parsed. Otherwise, it returns the zero
 // value for type V. Parameters local and space must exactly match the required attribute.
-func Coerce[V any](as Attrs, local, space string, parse func(v string) (V, error)) V {
-	v, err := parse(as.Get(local, space).Value)
+//
+// If error handling is required, use the parse function directly instead.
+func Coerce[V any](as Attrs, name NameMatcher, parse func(v string) (V, error)) V {
+	return CoerceString(as.Get(name).Value, parse)
+}
+
+// CoerceString will attempt to convert an attribute value to any type, given a parse function
+// that accepts a string. The returned value will only contain the parsed result if the
+// attribute could be successfully parsed. Otherwise, it returns the zero value
+// for type V.
+//
+// If error handling is required, use the parse function directly instead.
+func CoerceString[V any](s string, parse func(v string) (V, error)) V {
+	v, err := parse(s)
 	if err != nil {
 		var zero V
 		return zero

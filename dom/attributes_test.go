@@ -2,11 +2,25 @@ package dom
 
 import (
 	"encoding/xml"
+	"regexp"
 	"strconv"
 	"testing"
 
 	"github.com/rickb777/expect"
 )
+
+func TestAttrsNames(t *testing.T) {
+	a1 := Attr("a", "", "1")
+	b1 := Attr("b", "", "1")
+	xa3 := Attr("a", "x", "3")
+
+	as := Attrs{a1, b1, xa3}
+
+	expect.Slice(as.Names()).ToBe(t, a1.Name, b1.Name, xa3.Name)
+
+	as = nil
+	expect.Slice(as.Names()).ToBe(t)
+}
 
 func TestAttrsGet(t *testing.T) {
 	a1 := Attr("a", "", "1")
@@ -18,12 +32,12 @@ func TestAttrsGet(t *testing.T) {
 
 	as := Attrs{a1, b1, a2, xa3, xb4, ya5}
 
-	expect.Value(as.Get("a", "x")).ToBe(t, xa3)
-	expect.Value(as.Get("a", "")).ToBe(t, a1)
-	expect.Value(as.Get("z", "")).ToBe(t, xml.Attr{})
+	expect.Value(as.Get(Name("a", "x"))).ToBe(t, xa3)
+	expect.Value(as.Get(Local("a"))).ToBe(t, a1)
+	expect.Value(as.Get(Local("z"))).ToBe(t, xml.Attr{})
 
 	as = nil
-	expect.Value(as.Get("a", "")).ToBe(t, xml.Attr{})
+	expect.Value(as.Get(Local("a"))).ToBe(t, xml.Attr{})
 }
 
 func TestAttrsWithName(t *testing.T) {
@@ -36,13 +50,16 @@ func TestAttrsWithName(t *testing.T) {
 
 	as := Attrs{a1, b1, a2, xa1, xb1, ya1}
 
-	expect.Slice(as.WithName("a", "x")).ToBe(t, xa1)
-	expect.Slice(as.WithName("a", "*")).ToBe(t, a1, a2, xa1, ya1)
-	expect.Slice(as.WithName("b", "*")).ToBe(t, b1, xb1)
-	expect.Slice(as.WithName("*", "x")).ToBe(t, xa1, xb1)
+	expect.Slice(as.With(Name("a", "x"))).ToBe(t, xa1)
+	expect.Slice(as.With(NameRE(regexp.MustCompile("."), regexp.MustCompile(".")))).ToBe(t, xa1, xb1, ya1)
+	expect.Slice(as.With(Local("a"))).ToBe(t, a1, a2, xa1, ya1)
+	expect.Slice(as.With(Local("b"))).ToBe(t, b1, xb1)
+	expect.Slice(as.With(Space("x"))).ToBe(t, xa1, xb1)
+	expect.Slice(as.With(Space("x"), Space("y"))).ToBe(t, xa1, xb1, ya1)
+	expect.Slice(as.With(SpaceRE(regexp.MustCompile("[xy]")))).ToBe(t, xa1, xb1, ya1)
 
 	as = nil
-	expect.Slice(as.WithName("*", "x")).ToBe(t)
+	expect.Slice(as.With(Space("x"))).ToBe(t)
 }
 
 func TestAttrsValues(t *testing.T) {
@@ -99,8 +116,8 @@ func TestCoerceAttrs(t *testing.T) {
 
 	as := Attrs{a1, b1, a2, xa3}
 
-	expect.Bool(Coerce(as, "a", "", strconv.ParseBool)).ToBeTrue(t)
-	expect.Number(Coerce(as, "a", "x", strconv.Atoi)).ToBe(t, 3)
-	expect.Number(Coerce(as, "b", "", strconv.Atoi)).ToBe(t, 1)
-	expect.Number(Coerce(as, "z", "z", strconv.Atoi)).ToBe(t, 0)
+	expect.Bool(Coerce(as, Local("a"), strconv.ParseBool)).ToBeTrue(t)
+	expect.Number(Coerce(as, Name("a", "x"), strconv.Atoi)).ToBe(t, 3)
+	expect.Number(Coerce(as, Local("b"), strconv.Atoi)).ToBe(t, 1)
+	expect.Number(Coerce(as, Name("z", "z"), strconv.Atoi)).ToBe(t, 0)
 }
