@@ -224,6 +224,16 @@ func (node *Element) Attr(name, space, value string) *Element {
 	return node.AddAttr(Attr(name, space, value))
 }
 
+// AttrIfNonBlank adds a new attribute to an element, but only if the value is not blank.
+// This avoids the encoder emitting possibly many harmless but noisy blank attributes.
+// The node is returned, whether altered or not.
+func (node *Element) AttrIfNonBlank(name, space, value string) *Element {
+	if value == "" {
+		return node
+	}
+	return node.Attr(name, space, value)
+}
+
 func (node *Element) addNamespaces(encoder *Encoder) {
 	// See if any of our attribs are in the xmlns namespace.
 	// If they are, try to add them with their prefix

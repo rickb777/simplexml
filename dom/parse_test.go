@@ -55,7 +55,7 @@ var testCases = []tc{
 			doc := CreateDocument()
 			doc.SetRoot(
 				Elem("root", "").AddChild(
-					Elem("node1", "").Attr("id", "", `"Fran & Freddie's Diner" <tasty@example.com>`)))
+					Elem("node1", "").AttrIfNonBlank("id", "", `"Fran & Freddie's Diner" <tasty@example.com>`)))
 			return doc
 		},
 		sample: `<?xml version="1.0" encoding="UTF-8"?>
