@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/rickb777/expect"
+	"github.com/rickb777/simplexml/ns"
 )
 
 func TestAttrsNames(t *testing.T) {
@@ -32,12 +33,12 @@ func TestAttrsGet(t *testing.T) {
 
 	as := Attrs{a1, b1, a2, xa3, xb4, ya5}
 
-	expect.Value(as.Get(Name("a", "x"))).ToBe(t, xa3)
-	expect.Value(as.Get(Local("a"))).ToBe(t, a1)
-	expect.Value(as.Get(Local("z"))).ToBe(t, xml.Attr{})
+	expect.Value(as.Get(ns.Name("a", "x"))).ToBe(t, xa3)
+	expect.Value(as.Get(ns.Local("a"))).ToBe(t, a1)
+	expect.Value(as.Get(ns.Local("z"))).ToBe(t, xml.Attr{})
 
 	as = nil
-	expect.Value(as.Get(Local("a"))).ToBe(t, xml.Attr{})
+	expect.Value(as.Get(ns.Local("a"))).ToBe(t, xml.Attr{})
 }
 
 func TestAttrsWithName(t *testing.T) {
@@ -50,16 +51,16 @@ func TestAttrsWithName(t *testing.T) {
 
 	as := Attrs{a1, b1, a2, xa1, xb1, ya1}
 
-	expect.Slice(as.With(Name("a", "x"))).ToBe(t, xa1)
-	expect.Slice(as.With(NameRE(regexp.MustCompile("."), regexp.MustCompile(".")))).ToBe(t, xa1, xb1, ya1)
-	expect.Slice(as.With(Local("a"))).ToBe(t, a1, a2, xa1, ya1)
-	expect.Slice(as.With(Local("b"))).ToBe(t, b1, xb1)
-	expect.Slice(as.With(Space("x"))).ToBe(t, xa1, xb1)
-	expect.Slice(as.With(Space("x"), Space("y"))).ToBe(t, xa1, xb1, ya1)
-	expect.Slice(as.With(SpaceRE(regexp.MustCompile("[xy]")))).ToBe(t, xa1, xb1, ya1)
+	expect.Slice(as.With(ns.Name("a", "x"))).ToBe(t, xa1)
+	expect.Slice(as.With(ns.NameRE(regexp.MustCompile("."), regexp.MustCompile(".")))).ToBe(t, xa1, xb1, ya1)
+	expect.Slice(as.With(ns.Local("a"))).ToBe(t, a1, a2, xa1, ya1)
+	expect.Slice(as.With(ns.Local("b"))).ToBe(t, b1, xb1)
+	expect.Slice(as.With(ns.Space("x"))).ToBe(t, xa1, xb1)
+	expect.Slice(as.With(ns.Space("x"), ns.Space("y"))).ToBe(t, xa1, xb1, ya1)
+	expect.Slice(as.With(ns.SpaceRE(regexp.MustCompile("[xy]")))).ToBe(t, xa1, xb1, ya1)
 
 	as = nil
-	expect.Slice(as.With(Space("x"))).ToBe(t)
+	expect.Slice(as.With(ns.Space("x"))).ToBe(t)
 }
 
 func TestAttrsValues(t *testing.T) {
@@ -116,8 +117,8 @@ func TestCoerceAttrs(t *testing.T) {
 
 	as := Attrs{a1, b1, a2, xa3}
 
-	expect.Bool(Coerce(as, Local("a"), strconv.ParseBool)).ToBeTrue(t)
-	expect.Number(Coerce(as, Name("a", "x"), strconv.Atoi)).ToBe(t, 3)
-	expect.Number(Coerce(as, Local("b"), strconv.Atoi)).ToBe(t, 1)
-	expect.Number(Coerce(as, Name("z", "z"), strconv.Atoi)).ToBe(t, 0)
+	expect.Bool(Coerce(as, ns.Local("a"), strconv.ParseBool)).ToBeTrue(t)
+	expect.Number(Coerce(as, ns.Name("a", "x"), strconv.Atoi)).ToBe(t, 3)
+	expect.Number(Coerce(as, ns.Local("b"), strconv.Atoi)).ToBe(t, 1)
+	expect.Number(Coerce(as, ns.Name("z", "z"), strconv.Atoi)).ToBe(t, 0)
 }

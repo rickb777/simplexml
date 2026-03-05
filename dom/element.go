@@ -5,7 +5,8 @@ import (
 	"encoding/xml"
 	"io"
 	"log"
-	"regexp"
+
+	"github.com/rickb777/simplexml/ns"
 )
 
 // Element represents a node in an XML document.
@@ -127,7 +128,7 @@ func (node *Element) ChildN(n int) *Element {
 // Child returns the first child with matching name. If there is
 // no match, nil is returned. If multiple siblings may have the same
 // name, use Children().With(...) instead.
-func (node *Element) Child(pred NameMatcher) *Element {
+func (node *Element) Child(pred ns.MatchName) *Element {
 	for _, v := range node.children {
 		if pred(v.Name) {
 			return v
@@ -137,15 +138,15 @@ func (node *Element) Child(pred NameMatcher) *Element {
 }
 
 // Children returns some or all the children of node.
-func (node *Element) Children(pred ...NameMatcher) Elements {
+func (node *Element) Children(pred ...ns.MatchName) Elements {
 	res := make(Elements, 0, len(node.children))
 	if len(pred) == 0 {
 		return append(res, node.children...)
 	}
-	return node.children.With(pred...)
+	return node.children.WithName(pred...)
 }
 
-// Descendants returns all descendants of node in breadth order.
+// Descendants returns all descendants of node as a flattened list in breadth-first order.
 // The returned slice is a shallow copy.
 func (node *Element) Descendants() Elements {
 	res := make(Elements, 0, len(node.children))
@@ -161,7 +162,7 @@ func (node *Element) Descendants() Elements {
 	return res
 }
 
-// All returns node + node.Descendants()
+// All returns node + Element.Descendants as a flattened list.
 // The returned slice is a shallow copy.
 func (node *Element) All() Elements {
 	return append(Elements{node}, node.Descendants()...)
@@ -291,96 +292,4 @@ func (node *Element) bytes(indentation ...string) *bytes.Buffer {
 // String returns a pretty-printed XML encoding of this part of the tree.
 func (node *Element) String() string {
 	return string(node.Bytes("  "))
-}
-
-//-------------------------------------------------------------------------------------------------
-
-type Elements []*Element
-
-// With filters the elements and returns only those that have matching name.
-// If multiple predicates are supplied, any matching element is returned.
-// If es is empty, nil is returned.
-func (es Elements) With(pred ...NameMatcher) Elements {
-	if len(es) == 0 {
-		return nil
-	}
-	res := make(Elements, 0, len(es))
-	for _, e := range es {
-	inner:
-		for _, p := range pred {
-			if p(e.Name) {
-				res = append(res, e)
-				break inner
-			}
-		}
-	}
-	return res
-}
-
-// WithAttr filters the elements and returns only those that have
-// any attribute with a matching name.
-// If multiple predicates are supplied, any matching element is returned.
-// If es is empty, nil is returned.
-func (es Elements) WithAttr(pred ...NameMatcher) Elements {
-	if len(es) == 0 {
-		return nil
-	}
-	res := make(Elements, 0, len(es))
-	for _, e := range es {
-	inner:
-		for _, a := range e.Attributes {
-			for _, p := range pred {
-				if p(a.Name) {
-					res = append(res, e)
-					break inner
-				}
-			}
-		}
-	}
-	return res
-}
-
-// WithContent filters the elements and returns only those that have
-// matching content. If es is empty, nil is returned.
-//
-// When some regexps are passed in, all elements are returned that have
-// content matching any of the regexps.
-//
-// When no regexps are passed in, all elements are returned that have
-// non-blank content.
-func (es Elements) WithContent(re ...*regexp.Regexp) Elements {
-	if len(es) == 0 {
-		return nil
-	}
-	res := make(Elements, 0, len(es))
-	if len(re) > 0 {
-		for _, e := range es {
-		inner:
-			for _, r := range re {
-				if r.Match(e.Content) {
-					res = append(res, e)
-					break inner
-				}
-			}
-		}
-	} else {
-		for _, e := range es {
-			if len(e.Content) > 0 {
-				res = append(res, e)
-			}
-		}
-	}
-	return res
-}
-
-// Names gets the XML names from the elements in original order.
-func (es Elements) Names() []xml.Name {
-	if len(es) == 0 {
-		return nil
-	}
-	res := make([]xml.Name, 0, len(es))
-	for _, e := range es {
-		res = append(res, e.Name)
-	}
-	return res
 }

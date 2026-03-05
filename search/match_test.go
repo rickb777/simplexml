@@ -1,4 +1,4 @@
-package search
+package search_test
 
 import (
 	"encoding/xml"
@@ -8,7 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rickb777/expect"
 	"github.com/rickb777/simplexml/dom"
+	"github.com/rickb777/simplexml/ns"
+	"github.com/rickb777/simplexml/search"
 )
 
 var testDoc string = `<?xml version="1.0" encoding="UTF-8"?>
@@ -31,31 +34,39 @@ func parseDoc() *dom.Document {
 	return doc
 }
 
-func TestTag(t *testing.T) {
+func TestLocal(t *testing.T) {
 	doc := parseDoc()
-	res := First(Tag("sub", ""), doc.Root().All())
-	if res == nil {
-		t.Error("Could not find sub element!")
-	}
-	if res.Name.Local != "sub" || res.Name.Space != "" {
-		t.Errorf("Looking for sub element gave me '%s' in namespace '%s'", res.Name.Local, res.Name.Space)
+	res := search.First(doc.Root().All(), search.Local("sub"))
+	expect.Value(res).Not().ToBeNil(t)
+	if res != nil {
+		expect.String(res.Name.Local).ToBe(t, "sub")
+		expect.String(res.Name.Space).ToBe(t, "")
 	}
 }
 
-func TestTagRE(t *testing.T) {
+func TestLocalRE(t *testing.T) {
 	doc := parseDoc()
-	res := First(TagRE(regexp.MustCompile("^sub$"), nil), doc.Root().All())
-	if res == nil {
-		t.Error("Could not find sub element!")
-	}
-	if res.Name.Local != "sub" || res.Name.Space != "" {
-		t.Errorf("Looking for sub element gave me '%s' in namespace '%s'", res.Name.Local, res.Name.Space)
+	res := search.First(doc.Root().All(), search.LocalRE(regexp.MustCompile("^sub$")))
+	expect.Value(res).Not().ToBeNil(t)
+	if res != nil {
+		expect.String(res.Name.Local).ToBe(t, "sub")
+		expect.String(res.Name.Space).ToBe(t, "")
 	}
 }
 
-func TestTagOrderPreservation(t *testing.T) {
+func TestSpace(t *testing.T) {
 	doc := parseDoc()
-	res := All(Tag("node2", ""), doc.Root().All())
+	res := doc.Root().All().First(search.Space("http://schemas.xmlsoap.org/ws/2004/08/addressing"))
+	expect.Value(res).Not().ToBeNil(t)
+	if res != nil {
+		expect.String(res.Name.Local).ToBe(t, "root")
+		expect.String(res.Name.Space).ToBe(t, "http://schemas.xmlsoap.org/ws/2004/08/addressing")
+	}
+}
+
+func TestLocalOrderPreservation(t *testing.T) {
+	doc := parseDoc()
+	res := search.All(doc.Root().All(), search.Local("node2"))
 	if len(res) != 3 {
 		t.Errorf("Expected to find 2 elements, found %d", len(res))
 	}
@@ -72,18 +83,18 @@ func TestTagOrderPreservation(t *testing.T) {
 			t.Errorf("Could not extract order attribute value: %v", err)
 		}
 		if order != i {
-			t.Errorf("Elements returned by All out of order! Expected %d, got %d", i, order)
+			t.Errorf("Elements returned by All out of order Expected %d, got %d", i, order)
 		}
 	}
 }
 
 func TestAttr(t *testing.T) {
 	doc := parseDoc()
-	res := All(Attr("idx", "", "*"), doc.Root().All())
+	res := search.All(doc.Root().All(), search.Attr(ns.Local("idx")))
 	if len(res) != 6 {
 		t.Errorf("Expected 6 elements, got %d", len(res))
 	}
-	res = All(Attr("idx", "", "0"), doc.Root().All())
+	res = search.All(doc.Root().All(), search.AttrV(ns.Local("idx"), "0"))
 	if len(res) != 1 {
 		t.Errorf("Expected 1 elements, got %d", len(res))
 	}
@@ -96,13 +107,11 @@ func TestAttr(t *testing.T) {
 
 func TestAttrRE(t *testing.T) {
 	doc := parseDoc()
-	res := All(AttrRE(regexp.MustCompile("idx"), nil, regexp.MustCompile(".*")),
-		doc.Root().All())
+	res := search.All(doc.Root().All(), search.AttrRE(ns.LocalRE(regexp.MustCompile("idx")), regexp.MustCompile(".*")))
 	if len(res) != 6 {
 		t.Errorf("Expected 6 elements, got %d", len(res))
 	}
-	res = All(AttrRE(regexp.MustCompile("idx"), nil, regexp.MustCompile("^0$")),
-		doc.Root().All())
+	res = search.All(doc.Root().All(), search.AttrRE(ns.LocalRE(regexp.MustCompile("idx")), regexp.MustCompile("^0$")))
 	if len(res) != 1 {
 		t.Errorf("Expected 1 elements, got %d", len(res))
 	}
@@ -115,7 +124,7 @@ func TestAttrRE(t *testing.T) {
 
 func TestAttrOrderPreservation(t *testing.T) {
 	doc := parseDoc()
-	res := All(Attr("idx", "", "*"), doc.Root().All())
+	res := search.All(doc.Root().All(), search.Attr(ns.Local("idx")))
 	if len(res) != 6 {
 		t.Errorf("Expected 6 elements, got %d", len(res))
 	}
@@ -143,7 +152,7 @@ func TestAttrOrderPreservation(t *testing.T) {
 
 func TestContentExists(t *testing.T) {
 	doc := parseDoc()
-	res := All(ContentExists(), doc.Root().All())
+	res := search.All(doc.Root().All(), search.ContentExists())
 	if len(res) != 3 {
 		t.Errorf("Expected 3 elements, got %d", len(res))
 	}
@@ -151,7 +160,7 @@ func TestContentExists(t *testing.T) {
 
 func TestContentRE(t *testing.T) {
 	doc := parseDoc()
-	res := All(ContentRE(regexp.MustCompile("^I am Groot$")), doc.Root().All())
+	res := search.All(doc.Root().All(), search.ContentRE(regexp.MustCompile("^I am Groot$")))
 	if len(res) != 1 {
 		t.Errorf("Expected 1 element, got %d", len(res))
 	}
@@ -165,15 +174,14 @@ func TestContentRE(t *testing.T) {
 func TestAndCombinator(t *testing.T) {
 	doc := parseDoc()
 	expected := "I am a different Node 2"
-	res := All(And(
-		Attr("*", "", "1"),
-		Tag("node2", "")),
-		doc.Root().All())
+	res := search.All(doc.Root().All(), search.And(
+		search.AttrV(ns.Any(), "1"),
+		search.Local("node2")))
 	if len(res) != 1 {
 		t.Errorf("Expected 1 element, got %d", len(res))
 	}
 	if string(res[0].Content) != expected {
-		t.Errorf("Expected node content not found!\nExpected: %s\n\nGot: %s",
+		t.Errorf("Expected node content not found\nExpected: %s\n\nGot: %s",
 			expected,
 			string(res[0].Content))
 	}
@@ -181,10 +189,9 @@ func TestAndCombinator(t *testing.T) {
 
 func TestOrCombinator(t *testing.T) {
 	doc := parseDoc()
-	res := All(Or(
-		Attr("idx", "", "0"),
-		Attr("foo", "", "bar")),
-		doc.Root().All())
+	res := search.All(doc.Root().All(), search.Or(
+		search.AttrV(ns.Local("idx"), "0"),
+		search.AttrV(ns.Local("foo"), "bar")))
 	if len(res) != 2 {
 		t.Errorf("Expected 2 elements, got %d", len(res))
 	}
@@ -199,16 +206,15 @@ func TestOrCombinator(t *testing.T) {
 
 func TestNot(t *testing.T) {
 	doc := parseDoc()
-	match := Not(Tag("root", ""))
-	if !match(doc.Root()) {
-		t.Error("Not match testing failed!")
+	match := search.Not(search.Local("root"))
+	if match(doc.Root()) {
+		t.Error("Not match testing failed")
 	}
 }
 
 func TestNoParent(t *testing.T) {
 	doc := parseDoc()
-	res := All(NoParent(),
-		doc.Root().All())
+	res := search.All(doc.Root().All(), search.NoParent())
 	if len(res) != 1 {
 		t.Errorf("NoParent matched %d elements, should only have matched 1", len(res))
 	}
@@ -223,8 +229,7 @@ func TestAncestor(t *testing.T) {
 	doc := parseDoc()
 	// The only node that will fail this test is the root node,
 	// because it does not have ancestors.
-	res := All(Ancestor(NoParent()),
-		doc.Root().All())
+	res := search.All(doc.Root().All(), search.Ancestor(search.NoParent()))
 	if len(res) != 5 {
 		t.Errorf("TestAncestor matched %d elements instead of 5", len(res))
 	}
@@ -232,8 +237,7 @@ func TestAncestor(t *testing.T) {
 
 func TestNestedAncestor(t *testing.T) {
 	doc := parseDoc()
-	res := All(Ancestor(Ancestor(NoParent())),
-		doc.Root().All())
+	res := search.All(doc.Root().All(), search.Ancestor(search.Ancestor(search.NoParent())))
 	if len(res) != 2 {
 		t.Errorf("TestNestedAncestor matched %d elements instead of 2", len(res))
 	}
@@ -243,8 +247,7 @@ func TestAncestorN(t *testing.T) {
 	doc := parseDoc()
 	answers := []int{1, 3, 2}
 	for i, answer := range answers {
-		res := All(AncestorN(NoParent(), uint(i)),
-			doc.Root().All())
+		res := search.All(doc.Root().All(), search.AncestorN(search.NoParent(), uint(i)))
 		if len(res) != answer {
 			t.Errorf("TestAncestorN(%d) had %d matches instead of %d",
 				i, len(res), answer)
@@ -254,8 +257,7 @@ func TestAncestorN(t *testing.T) {
 
 func TestParent(t *testing.T) {
 	doc := parseDoc()
-	res := All(Parent(NoParent()),
-		doc.Root().All())
+	res := search.All(doc.Root().All(), search.Parent(search.NoParent()))
 	if len(res) != 3 {
 		t.Errorf("TestParent matched %d elements instead of 3", len(res))
 	}
@@ -263,8 +265,7 @@ func TestParent(t *testing.T) {
 
 func TestNestedParent(t *testing.T) {
 	doc := parseDoc()
-	res := All(Parent(Parent(NoParent())),
-		doc.Root().All())
+	res := search.All(doc.Root().All(), search.Parent(search.Parent(search.NoParent())))
 	if len(res) != 2 {
 		t.Errorf("TestNestedParent matched %d elements instead of 2", len(res))
 	}
@@ -272,14 +273,14 @@ func TestNestedParent(t *testing.T) {
 
 func TestAlways(t *testing.T) {
 	doc := parseDoc()
-	if !Always()(doc.Root()) {
+	if !search.Always()(doc.Root()) {
 		t.Error("Always returned false")
 	}
 }
 
 func TestNever(t *testing.T) {
 	doc := parseDoc()
-	if Never()(doc.Root()) {
+	if search.Never()(doc.Root()) {
 		t.Error("Never returned true")
 	}
 }

@@ -1,6 +1,10 @@
 package dom
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+
+	"github.com/rickb777/simplexml/ns"
+)
 
 // Attr creates a new [xml.Attr].  It is exactly equivalent to creating
 // a new [xml.Attr] with:
@@ -36,7 +40,7 @@ func (as Attrs) Names() []xml.Name {
 
 // Get gets the attribute that has matching name.
 // If there is no match, a zero xml.Attr is returned.
-func (as Attrs) Get(name NameMatcher) xml.Attr {
+func (as Attrs) Get(name ns.MatchName) xml.Attr {
 	for _, a := range as {
 		if name(a.Name) {
 			return a
@@ -48,7 +52,7 @@ func (as Attrs) Get(name NameMatcher) xml.Attr {
 // With filters the attributes and returns only those that have
 // matching name. If multiple predicates are supplied, any matching
 // attribute is returned. If as is empty, nil is returned.
-func (as Attrs) With(pred ...NameMatcher) Attrs {
+func (as Attrs) With(pred ...ns.MatchName) Attrs {
 	if len(as) == 0 {
 		return nil
 	}
@@ -107,7 +111,7 @@ func (as Attrs) ToSimpleMap() map[string]string {
 // value for type V. Parameters local and space must exactly match the required attribute.
 //
 // If error handling is required, use the parse function directly instead.
-func Coerce[V any](as Attrs, name NameMatcher, parse func(v string) (V, error)) V {
+func Coerce[V any](as Attrs, name ns.MatchName, parse func(v string) (V, error)) V {
 	return CoerceString(as.Get(name).Value, parse)
 }
 

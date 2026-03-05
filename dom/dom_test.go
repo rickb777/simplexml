@@ -1,4 +1,4 @@
-package dom
+package dom_test
 
 import (
 	"encoding/xml"
@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/rickb777/expect"
+	"github.com/rickb777/simplexml/dom"
+	"github.com/rickb777/simplexml/ns"
 )
 
 var testDoc = `<?xml version="1.0" encoding="UTF-8"?>
@@ -24,8 +26,8 @@ var testDoc = `<?xml version="1.0" encoding="UTF-8"?>
 </a:root>
 `
 
-func parseDoc() *Document {
-	doc, err := Parse(strings.NewReader(testDoc))
+func parseDoc() *dom.Document {
+	doc, err := dom.Parse(strings.NewReader(testDoc))
 	if err != nil {
 		log.Panicf("Cannot parse test document. Error: %v", err)
 	}
@@ -41,23 +43,20 @@ func TestChildren(t *testing.T) {
 	expect.Number(root.NumChildren()).ToBe(t, 3)
 	expect.Number(root.ChildN(1).NumChildren()).ToBe(t, 1)
 	expect.Number(root.ChildN(2).NumChildren()).ToBe(t, 0)
-	expect.Slice(root.Children(Local("node1")).Names()).ToBe(t, node1)
-	expect.Slice(root.Children().With(Local("node2")).Names()).ToBe(t, node2, node2)
-	expect.Slice(root.Children().With(Local("node1"), Local("node2")).Names()).ToBe(t, node1, node2, node2)
-	expect.Slice(root.Children().With(Local("node0")).Names()).ToBe(t)
-	expect.Slice(root.Children().WithAttr(Local("foo")).Names()).ToBe(t, node1)
-	expect.Slice(root.Children().WithAttr(Local("order")).Names()).ToBe(t, node2, node2)
-	expect.Slice(root.Children().With(LocalRE(regexp.MustCompile("node."))).Names()).ToBe(t, node1, node2, node2)
-	expect.Slice(root.Children().WithContent().Names()).ToBe(t, node2, node2)
-	expect.Slice(root.Children().WithContent(regexp.MustCompile(".* Node 2.*")).Names()).ToBe(t, node2, node2)
-	expect.Slice(root.Descendants().With(Local("node2")).Names()).ToBe(t, node2, node2, node2)
-	expect.Slice(root.Descendants().WithContent(regexp.MustCompile(".*Groot.*")).Names()).ToBe(t, node2)
+	expect.Slice(root.Children(ns.Local("node1")).Names()).ToBe(t, node1)
+	expect.Slice(root.Children().WithName(ns.Local("node2")).Names()).ToBe(t, node2, node2)
+	expect.Slice(root.Children().WithName(ns.Local("node1"), ns.Local("node2")).Names()).ToBe(t, node1, node2, node2)
+	expect.Slice(root.Children().WithName(ns.Local("node0")).Names()).ToBe(t)
+	expect.Slice(root.Children().WithAttr(ns.Local("foo")).Names()).ToBe(t, node1)
+	expect.Slice(root.Children().WithAttr(ns.Local("order")).Names()).ToBe(t, node2, node2)
+	expect.Slice(root.Children().WithName(ns.LocalRE(regexp.MustCompile("node."))).Names()).ToBe(t, node1, node2, node2)
+	expect.Slice(root.Descendants().WithName(ns.Local("node2")).Names()).ToBe(t, node2, node2, node2)
 }
 
 func TestChild(t *testing.T) {
 	root := parseDoc().Root()
-	expect.Value(root.Child(Local("node1")).Name).ToBe(t, xml.Name{Local: "node1"})
-	expect.Value(root.Child(Local("foobar"))).ToBeNil(t)
+	expect.Value(root.Child(ns.Local("node1")).Name).ToBe(t, xml.Name{Local: "node1"})
+	expect.Value(root.Child(ns.Local("foobar"))).ToBeNil(t)
 }
 
 func TestMoveChild(t *testing.T) {
@@ -109,7 +108,7 @@ func TestAncestorOrder(t *testing.T) {
 func TestEncoding(t *testing.T) {
 	doc := parseDoc()
 	var sb strings.Builder
-	enc := NewEncoder(&sb, "  ")
+	enc := dom.NewEncoder(&sb, "  ")
 	err := doc.Encode(enc)
 	expect.Error(err).ToBeNil(t)
 	expect.String(sb.String()).ToBe(t, testDoc)
@@ -117,7 +116,7 @@ func TestEncoding(t *testing.T) {
 
 func TestElementString(t *testing.T) {
 	refString := "<foo/>\n"
-	refElement := Elem("foo", "")
+	refElement := dom.Elem("foo", "")
 	if res := refElement.String(); res != refString {
 		t.Errorf("Expected stringification of reference to be '%s', not '%s'", refString, res)
 	}
@@ -125,7 +124,7 @@ func TestElementString(t *testing.T) {
 
 func TestParseElements(t *testing.T) {
 	elems := "<foo/>\n<bar/>\n"
-	elements, err := ParseElementString(elems)
+	elements, err := dom.ParseElementString(elems)
 	expect.Error(err).ToBeNil(t)
 	expect.Slice(elements).ToHaveLength(t, 2)
 	names := []xml.Name{
@@ -140,9 +139,9 @@ func TestParseElements(t *testing.T) {
 
 func TestParseTooManyRootElements(t *testing.T) {
 	elems := "<foo/>\n<bar/>\n"
-	_, err := Parse(strings.NewReader(elems))
+	_, err := dom.Parse(strings.NewReader(elems))
 	expect.Error(err).ToHaveOccurred(t)
-	if !errors.Is(err, TooManyRootElements) {
+	if !errors.Is(err, dom.TooManyRootElements) {
 		t.Errorf("Expected TooManyRootElements, got %v", err)
 	}
 }

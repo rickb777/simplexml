@@ -35,5 +35,11 @@ cd simplexml
 go build
 ```
 
+## Packages
+
+ * dom: the main XML model with parser and encoder; also includes some element searching/filtering
+ * ns: namespace filtering to make it easy to search for items by name
+ * search: extended element filtering logic
+
 It has a [Magefile](https://magefile.org).
 
